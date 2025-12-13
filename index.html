@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Baby Shower | Cortez Mancia</title>
+  
+  <!-- Fuentes Elegantes -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Iconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
+  <!-- Librería para Confeti (Efecto de celebración) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Firebase SDKs (Firestore) - reemplaza configuración en el script al final -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    /* --- VARIABLES DE COLOR --- */
+    :root {
+      --primary-pink: #ffcdd2;  /* Sobre */
+      --secondary-pink: #f8bbd0; /* Solapa */
+      --accent: #e91e63;        /* Sello/Corazón */
+      --bear-brown: #8d6e63;    /* Color Osita */
+      --bg-gradient: linear-gradient(135deg, #fff0f5 0%, #ede7f6 100%);
+      --text-main: #4a4a4a;
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.6);
+    }
+
+    /* --- RESET BÁSICO --- */
+    * { box-sizing: border-box; }
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Inter', sans-serif;
+      /* Fondo: degradado sobre imagen (img/fondo.webp) */
+      background-image: var(--bg-gradient), url('img/fondo.webp');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-blend-mode: overlay;
+      overflow: hidden; /* Bloqueamos scroll hasta abrir el sobre */
+      color: var(--text-main);
+    }
+
+    /* --- PANTALLA DE SUSPENSO (EL SOBRE) --- */
+    #envelope-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+      background: #fff0f5;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      z-index: 5000;
+      transition: opacity 1s ease, transform 1s ease;
+    }
+
+    .instruction-text {
+      margin-top: 2rem;
+      font-family: 'Great Vibes', cursive;
+      font-size: 2rem;
+      color: var(--accent);
+      animation: bounce 2s infinite;
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    /* Construcción del Sobre CSS Puro */
+    .envelope-wrapper {
+      position: relative;
+      width: 300px; height: 200px;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+    .envelope-wrapper:hover { transform: scale(1.02); }
+
+    .envelope {
+      position: relative;
+      width: 100%; height: 100%;
+      background: var(--primary-pink);
+      border-radius: 0 0 10px 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      overflow: hidden; 
+      z-index: 10;
+    }
+    
+    .flap {
+      position: absolute; top: 0; left: 0;
+      width: 0; height: 0;
+      border-left: 150px solid transparent;
+      border-right: 150px solid transparent;
+      border-top: 110px solid var(--secondary-pink);
+      transform-origin: top;
+      transition: transform 0.6s ease-in-out, z-index 0.6s;
+      z-index: 20;
+    }
+
+    .pocket {
+      position: absolute; bottom: 0; left: 0;
+      width: 0; height: 0;
+      border-left: 150px solid var(--primary-pink);
+      border-right: 150px solid var(--primary-pink);
+      border-bottom: 100px solid var(--secondary-pink);
+      z-index: 15;
+    }
+
+    /* Sticker de Osita en el Sello */
+    .seal {
+      position: absolute;
+      top: 80px; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px; height: 60px;
+      background: #fff;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      display: flex; justify-content: center; align-items: center;
+      color: var(--bear-brown); 
+      font-size: 1.8rem;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 25;
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+
+    /* Imagen pequeña de osita dentro del sello */
+    .seal img, .seal .seal-img {
+      width: 42px; height: 42px; object-fit: contain; display: block;
+      border-radius: 50%;
+    }
+
+    .open .flap { transform: rotateX(180deg); z-index: 5; }
+    .open .seal { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    .open .envelope-wrapper { animation: fadeOutEnvelope 1s forwards 0.8s; }
+
+    @keyframes fadeOutEnvelope { to { opacity: 0; transform: translateY(50px) scale(0.9); } }
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+      40% {transform: translateY(-10px);}
+      60% {transform: translateY(-5px);}
+    }
+
+    /* --- CONTENIDO PRINCIPAL --- */
+    #main-content {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 1.5s ease-out, transform 1.5s ease-out;
+      width: 100%;
+      min-height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-bottom: 50px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 40px 20px;
+      margin: 20px 0;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+      text-align: center;
+      position: relative;
+    }
+    
+    /* Adorno de huellitas */
+    .paw-icon {
+      width: 32px; height: 32px; display: inline-block;
+      margin: 0 10px; transform: rotate(12deg);
+      vertical-align: middle; object-fit: contain;
+    }
+
+    /* Tipografía */
+    h1, h2 { font-family: 'Great Vibes', cursive; color: var(--accent); }
+    h1 { font-size: 3.5rem; margin-bottom: 0.5rem; line-height: 1.2; }
+    h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+    p { margin-bottom: 1rem; line-height: 1.6; }
+    
+    .subtitle {
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 0.8rem;
+        color: var(--bear-brown);
+        font-weight: 600;
+    }
+
+    /* Cuenta regresiva */
+    .countdown { display: flex; justify-content: center; gap: 15px; margin: 30px 0; flex-wrap: wrap; }
+    .time-box {
+      background: rgba(255,255,255,0.9);
+      padding: 10px; border-radius: 10px; min-width: 70px;
+      border: 1px solid var(--primary-pink);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .time-box span { display: block; font-weight: bold; font-size: 1.5rem; color: var(--accent); }
+    .time-box small { font-size: 0.7rem; color: #666; text-transform: uppercase; }
+
+    /* Botones */
+    .btn {
+      display: inline-block; padding: 12px 30px;
+      background: var(--accent); color: white;
+      text-decoration: none; border-radius: 50px; font-weight: 600;
+      box-shadow: 0 5px 15px rgba(233, 30, 99, 0.3);
+      transition: transform 0.2s; border: none; cursor: pointer; margin: 5px;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); box-shadow: none; }
+    .btn-whatsapp { background: #25D366; box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3); }
+
+    /* Galería */
+    .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 20px; }
+    .gallery img { width: 100%; border-radius: 10px; transition: transform 0.3s; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .gallery img:hover { transform: scale(1.05); }
+
+    /* Miniatura del mapa (clicable) */
+    .map-thumb { width: 100%; max-width: 320px; height: auto; border-radius: 12px; border: 3px solid white; box-shadow: 0 6px 18px rgba(0,0,0,0.12); display: block; margin: 8px auto; cursor: pointer; }
+    .map-wrapper { display:flex; justify-content:center; align-items:center; }
+
+    /* --- ESTILOS DEL LIBRO DE VISITAS --- */
+    .guestbook-form {
+        margin-top: 20px;
+        display: flex; flex-direction: column; gap: 10px;
+    }
+    .guestbook-input, .guestbook-textarea {
+        width: 100%; padding: 12px;
+        border: 1px solid #ddd; border-radius: 10px;
+        font-family: 'Inter', sans-serif;
+    }
+    .guestbook-textarea { resize: vertical; min-height: 80px; }
+    
+    #messages-list {
+        margin-top: 30px; text-align: left;
+        max-height: 300px; overflow-y: auto;
+    }
+    .message-item {
+        background: white; padding: 15px; border-radius: 10px;
+        margin-bottom: 10px; position: relative;
+        border-left: 4px solid var(--accent);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        animation: fadeIn 0.5s ease;
+    }
+    .message-item strong { color: var(--bear-brown); display: block; margin-bottom: 5px; }
+    .message-date { font-size: 0.7rem; color: #999; float: right; }
+    
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Animaciones */
+    .fade-in-up { opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease-out, transform 0.8s ease-out; }
+    .fade-in-up.visible { opacity: 1; transform: translateY(0); }
+
+  </style>
+</head>
+<body>
+
+  <!-- 1. CAPA DE SUSPENSO (EL SOBRE) -->
+  <div id="envelope-overlay">
+    <div class="envelope-wrapper" id="envelope" onclick="openEnvelope()">
+      <div class="flap"></div>
+      <div class="pocket"></div>
+      <div class="envelope"></div>
+      <!-- Imagen pequeña de osita en el sello -->
+      <div class="seal"><img src="img/osita.webp" alt="Osita" class="seal-img"></div>
+    </div>
+    <div class="instruction-text">
+      Una sorpresa te espera...<br>
+      <span style="font-size: 1rem; font-family: 'Inter', sans-serif; color: #888;">Toca la Osita </span>
+    </div>
+  </div>
+
+  <!-- 2. CONTENIDO PRINCIPAL -->
+  <main id="main-content">
+    
+    <div class="container">
+      
+      <!-- HERO -->
+      <div class="card">
+           <div style="font-size: 3rem; color: var(--bear-brown); margin-bottom: 10px;">
+             <!-- Imagen pequeña de osita en lugar de huellita -->
+             <img src="img/osita.webp" alt="Osita" class="paw-icon">
+           </div>
+        <p class="subtitle">¡Es una niña!</p>
+        <h1>Baby Shower</h1>
+        <p style="font-style: italic; color: #666;">Acompáñanos a celebrar la llegada de nuestra</p>
+        <h2 style="font-size: 3rem; color: var(--accent);">Princesa</h2>
+        
+        <div class="countdown">
+          <div class="time-box"><span id="days">00</span><small>Días</small></div>
+          <div class="time-box"><span id="hours">00</span><small>Horas</small></div>
+          <div class="time-box"><span id="minutes">00</span><small>Min</small></div>
+          <div class="time-box"><span id="seconds">00</span><small>Seg</small></div>
+        </div>
+
+        <button class="btn btn-outline" onclick="toggleMusic()" id="music-btn"><i class="fas fa-music"></i> Música</button>
+        <button class="btn btn-outline" onclick="scrollToSection('rsvp')">Confirmar</button>
+      </div>
+
+      <!-- DETALLES -->
+      <div class="card fade-in-up">
+        <h2><i class="fas fa-star" style="font-size: 1.5rem; color: gold;"></i> Detalles</h2>
+        <div style="display: flex; flex-direction: column; gap: 20px; text-align: center;">
+          
+          <div>
+            <i class="far fa-calendar-alt" style="font-size: 1.5rem; color: var(--accent); margin-bottom: 5px;"></i>
+            <p style="font-weight: bold; margin:0;">Sábado, 27 de Diciembre</p>
+            <p style="margin:0;">3:30 PM</p>
+          </div>
+          
+          <div class="map-wrapper">
+            <div style="text-align:center;">
+              <p style="font-weight: bold; margin:0;">Casa de Habitación</p>
+              <a href="https://maps.app.goo.gl/YGzQ4xf4moDqXigeA" target="_blank" title="Abrir mapa en Google Maps">
+                <img src="img/mapa.webp" alt="Mapa Casa" class="map-thumb">
+              </a>
+              <div style="margin-top:6px;"><a href="https://maps.app.goo.gl/YGzQ4xf4moDqXigeA" target="_blank" style="color: var(--accent); font-size: 0.9rem;">Ver en Google Maps</a></div>
+            </div>
+          </div>
+
+          <div>
+            <i class="fas fa-gift" style="font-size: 1.5rem; color: var(--accent); margin-bottom: 5px;"></i>
+            <p style="margin:0; padding: 0 15px;">
+              Lo más importante para nosotros es celebrar contigo la llegada de nuestra bebé. 
+              <br>
+              Si de corazón deseas hacernos un obsequio, será muy bienvenido.
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- NUEVO: LIBRO DE DESEOS (GUESTBOOK) -->
+      <div class="card fade-in-up" id="guestbook-section">
+        <h2>Libro de Deseos</h2>
+        <p>Déjale un mensaje de amor a la bebé para el futuro <i class="fas fa-heart" style="color: var(--accent)"></i></p>
+        
+        <!-- Formulario -->
+        <div class="guestbook-form">
+            <input type="text" id="guestName" class="guestbook-input" placeholder="Tu Nombre">
+            <textarea id="guestMessage" class="guestbook-textarea" placeholder="Escribe tu deseo aquí..."></textarea>
+            <button class="btn" onclick="addGuestMessage()">Dejar Mensaje</button>
+        </div>
+
+        <!-- Lista de Mensajes -->
+        <div id="messages-list">
+            <!-- Los mensajes aparecerán aquí -->
+            <div class="message-item">
+                <span class="message-date">Hoy</span>
+                <strong>Mamá y Papá</strong>
+                ¡Te esperamos con ansias, Princesa!
+            </div>
+        </div>
+      </div>
+
+      <!-- GALERÍA OSITA -->
+      <div class="card fade-in-up">
+        <h2>Dulce Espera</h2>
+        <div class="gallery">
+          <!-- Imágenes de temática Osita/Rosa -->
+          <img src="img/ultra.webp" alt="ultra">
+          <img src="img/imagen1.webp" alt="ultra y zapatos">
+          <img src="img/zapatos.webp" alt="zapatos">
+      </div>
+
+      <!-- RSVP -->
+      <div id="rsvp" class="card fade-in-up" style="background: #fff0f5;">
+        <h2>Confirmar Asistencia</h2>
+        <p>Por favor confirma antes del 25 de Diciembre</p>
+        
+        <a href="https://wa.me/50376199025?text=Hola,%20confirmo%20mi%20asistencia%20al%20Baby%20Shower" target="_blank" class="btn btn-whatsapp">
+          <i class="fab fa-whatsapp"></i> Enviar Mensaje a Mamá
+        </a>
+      </div>
+
+      <footer style="text-align: center; font-size: 0.8rem; color: #888; margin-top: 30px;">
+        Familia Cortez Mancia &copy; 2025
+      </footer>
+
+    </div>
+  </main>
+
+  <!-- Audio -->
+  <audio id="bgMusic" loop>
+    <!-- Fuente local preferente -->
+    <source src="audio/TeEsperaba.mp3" type="audio/mpeg">
+    <!-- Fallback remoto -->
+    <source src="https://assets.mixkit.co/music/preview/mixkit-playground-fun-12.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    // --- LÓGICA DE APERTURA ---
+    function openEnvelope() {
+      const envelopeDiv = document.getElementById('envelope');
+      const overlay = document.getElementById('envelope-overlay');
+      const mainContent = document.getElementById('main-content');
+      const body = document.body;
+      const audio = document.getElementById('bgMusic');
+
+      envelopeDiv.classList.add('open');
+
+      setTimeout(() => {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#ffcdd2', '#e91e63', '#ffffff']
+        });
+        
+        audio.volume = 0.5;
+        audio.play().catch(e => console.log("Autoplay bloqueado"));
+        document.getElementById('music-btn').innerHTML = '<i class="fas fa-pause"></i> Pausar';
+      }, 600);
+
+      setTimeout(() => {
+        overlay.style.opacity = '0';
+        body.style.overflow = 'auto';
+        mainContent.style.opacity = '1';
+        mainContent.style.transform = 'translateY(0)';
+      }, 1200);
+
+      setTimeout(() => { overlay.style.display = 'none'; }, 2200);
+    }
+
+    // --- FUNCIONES AUXILIARES ---
+    function toggleMusic() {
+      const audio = document.getElementById('bgMusic');
+      const btn = document.getElementById('music-btn');
+      if (audio.paused) {
+        audio.play();
+        btn.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+      } else {
+        audio.pause();
+        btn.innerHTML = '<i class="fas fa-music"></i> Música';
+      }
+    }
+
+    function scrollToSection(id) {
+      document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // --- GUESTBOOK: Firestore en tiempo real con fallback a localStorage ---
+    // Reemplaza los valores de `firebaseConfig` con tu configuración de proyecto.
+    let useFirestore = false;
+    let db = null;
+
+    try {
+      const firebaseConfig = {
+        apiKey: "AIzaSyAfnlZ-anfFcmBG90fGmM6Ir7yex8L1gSU",
+        authDomain: "invitacion-baby-shower-2a1db.firebaseapp.com",
+        projectId: "invitacion-baby-shower-2a1db",
+        storageBucket: "invitacion-baby-shower-2a1db.firebasestorage.app",
+        messagingSenderId: "200901187050",
+        appId: "1:200901187050:web:8bd8f9f63d257945298e93"
+      };
+
+      if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      useFirestore = true;
+      console.log('Firestore habilitado para el guestbook ✓');
+      } else {
+      console.log('Firebase no configurado; usando localStorage.');
+      }
+    } catch (e) {
+      console.log('Error inicializando Firebase:', e);
+      useFirestore = false;
+    }
+
+    // Cargar mensajes (Firestore en tiempo real o localStorage)
+    function loadMessages() {
+      const list = document.getElementById('messages-list');
+
+      if (useFirestore && db) {
+        db.collection('guestbook').orderBy('timestamp','desc').onSnapshot(snapshot => {
+          // Limpiar lista
+          list.innerHTML = '';
+          if (snapshot.empty) {
+            // Mensaje por defecto
+            list.innerHTML = `<div class="message-item"><span class="message-date">Hoy</span><strong>Mamá y Papá</strong>¡Te esperamos con ansias, Princesa!</div>`;
+          } else {
+            snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            const date = data.timestamp && data.timestamp.toDate ? data.timestamp.toDate().toLocaleDateString() : (data.date || '');
+            createMessageElement(data.name, data.text, date);
+            });
+          }
+        }, err => { console.error('Snapshot error:', err); });
+        return;
+      }
+
+      // Fallback localStorage
+      const storedMessages = localStorage.getItem('babyShowerMessages');
+      if (storedMessages) {
+        const messages = JSON.parse(storedMessages);
+        // Limpiamos la lista y mostramos mensajes locales
+        list.innerHTML = '';
+        if (messages.length === 0) {
+          list.innerHTML = `<div class="message-item"><span class="message-date">Hoy</span><strong>Mamá y Papá</strong>¡Te esperamos con ansias, Princesa!</div>`;
+        } else {
+          messages.forEach(msg => createMessageElement(msg.name, msg.text, msg.date));
+        }
+      }
+    }
+
+    function addGuestMessage() {
+      const nameInput = document.getElementById('guestName');
+      const msgInput = document.getElementById('guestMessage');
+      const name = nameInput.value.trim();
+      const text = msgInput.value.trim();
+
+      if (name === "" || text === "") {
+        alert("Por favor escribe tu nombre y un mensaje.");
+        return;
+      }
+
+      const date = new Date().toLocaleDateString();
+
+      if (useFirestore && db) {
+        db.collection('guestbook').add({ name, text, timestamp: firebase.firestore.FieldValue.serverTimestamp() })
+        .then(() => {
+          nameInput.value = '';
+          msgInput.value = '';
+          confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
+        })
+        .catch(err => {
+          console.error('Error guardando en Firestore:', err);
+          // Fallback a local
+          saveMessageToLocal(name, text, date);
+          nameInput.value = '';
+          msgInput.value = '';
+        });
+        return;
+      }
+
+      // Fallback localStorage
+      createMessageElement(name, text, date);
+      saveMessageToLocal(name, text, date);
+      nameInput.value = '';
+      msgInput.value = '';
+      confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 } });
+    }
+
+    function createMessageElement(name, text, date) {
+      const list = document.getElementById('messages-list');
+      const div = document.createElement('div');
+      div.className = 'message-item';
+      div.innerHTML = `
+        <span class="message-date">${date}</span>
+        <strong>${name}</strong>
+        ${text}
+      `;
+      // Insertar al inicio (más reciente arriba)
+      list.insertBefore(div, list.firstChild);
+    }
+
+    function saveMessageToLocal(name, text, date) {
+      let messages = localStorage.getItem('babyShowerMessages');
+      if (!messages) {
+        messages = [];
+      } else {
+        messages = JSON.parse(messages);
+      }
+      messages.unshift({ name, text, date });
+      localStorage.setItem('babyShowerMessages', JSON.stringify(messages));
+    }
+
+    // Cargar mensajes al iniciar
+    window.onload = loadMessages;
+
+    // --- COUNTDOWN ---
+    const targetDate = new Date('2025-12-28T15:30:00').getTime();
+    setInterval(() => {
+      const now = new Date().getTime();
+      const diff = targetDate - now;
+      if (diff > 0) {
+        document.getElementById('days').innerText = Math.floor(diff / (1000 * 60 * 60 * 24));
+        document.getElementById('hours').innerText = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        document.getElementById('minutes').innerText = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        document.getElementById('seconds').innerText = Math.floor((diff % (1000 * 60)) / 1000);
+      }
+    }, 1000);
+
+    // --- ANIMACIÓN SCROLL ---
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if(entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in-up').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
