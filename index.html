@@ -15,7 +15,7 @@
   <!-- Librería para Confeti (Efecto de celebración) -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <!-- Firebase SDKs (Firestore) - reemplaza configuración en el script al final -->
+  <!-- Firebase SDKs (Firestore) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
@@ -30,6 +30,10 @@
       --text-main: #4a4a4a;
       --glass-bg: rgba(255, 255, 255, 0.75);
       --glass-border: rgba(255, 255, 255, 0.6);
+      
+      /* Nuevos colores para botones */
+      --btn-mom: #e91e63; /* Rosa fuerte */
+      --btn-dad: #1976D2; /* Azul elegante */
     }
 
     /* --- RESET BÁSICO --- */
@@ -202,7 +206,7 @@
     .time-box span { display: block; font-weight: bold; font-size: 1.5rem; color: var(--accent); }
     .time-box small { font-size: 0.7rem; color: #666; text-transform: uppercase; }
 
-    /* Botones */
+    /* Botones Genéricos */
     .btn {
       display: inline-block; padding: 12px 30px;
       background: var(--accent); color: white;
@@ -212,7 +216,34 @@
     }
     .btn:hover { transform: translateY(-2px); }
     .btn-outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); box-shadow: none; }
-    .btn-whatsapp { background: #25D366; box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3); }
+    
+    /* Botones de Confirmación Específicos */
+    .btn-rsvp-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      margin-top: 15px;
+    }
+    .btn-mom {
+      background: var(--btn-mom);
+      box-shadow: 0 5px 15px rgba(233, 30, 99, 0.4);
+      width: 100%;
+      max-width: 300px;
+    }
+    .btn-dad {
+      background: var(--btn-dad);
+      box-shadow: 0 5px 15px rgba(25, 118, 210, 0.4);
+      width: 100%;
+      max-width: 300px;
+    }
+    
+    @media (min-width: 600px) {
+      .btn-rsvp-container {
+        flex-direction: row;
+        justify-content: center;
+      }
+    }
 
     /* Galería */
     .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 20px; }
@@ -372,9 +403,17 @@
         <h2>Confirmar Asistencia</h2>
         <p>Por favor confirma antes del 25 de Diciembre</p>
         
-        <a href="https://wa.me/50376199025?text=Hola,%20confirmo%20mi%20asistencia%20al%20Baby%20Shower" target="_blank" class="btn btn-whatsapp">
-          <i class="fab fa-whatsapp"></i> Enviar Mensaje a Mamá
-        </a>
+        <div class="btn-rsvp-container">
+          <!-- BOTÓN MAMÁ -->
+          <a href="https://wa.me/50376199025?text=¡Hola%20Mamá!%20🌸%20Estoy%20feliz%20de%20confirmar%20mi%20asistencia%20al%20Baby%20Shower%20de%20la%20Princesa.%20👶🎀" target="_blank" class="btn btn-mom">
+            <i class="fab fa-whatsapp"></i> Confirmar con Mamá 👩💖
+          </a>
+
+          <!-- BOTÓN PAPÁ (Nuevo) -->
+          <a href="https://wa.me/50360613425?text=¡Hola%20Papá!%20🎩%20Confirmo%20mi%20asistencia%20para%20el%20Baby%20Shower.%20¡Ahí%20estaré!%20👶✨" target="_blank" class="btn btn-dad">
+            <i class="fab fa-whatsapp"></i> Confirmar con Papá 👨💙
+          </a>
+        </div>
       </div>
 
       <footer style="text-align: center; font-size: 0.8rem; color: #888; margin-top: 30px;">
@@ -598,3 +637,4 @@
   </script>
 </body>
 </html>
+
